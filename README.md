@@ -6,7 +6,7 @@
 ### 添加方式
 打开 pubspec.yaml 添加
 ```
-http:
+jvtd_http:
     git:
         url: 'https://github.com/JvtdFlutter/http.git'
         ref: 'last_version'
