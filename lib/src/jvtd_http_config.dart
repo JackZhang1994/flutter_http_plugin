@@ -9,5 +9,6 @@ Dio dio = Dio(
     connectTimeout: 30000,
     receiveTimeout: 30000,
     contentType: "application/x-www-form-urlencoded",
+    responseType: ResponseType.plain,
   ),
 );

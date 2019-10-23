@@ -46,10 +46,14 @@ class JvtdHttpUtils {
     // 转换类型
     if (response.success &&
         (options.responseType == null ||
-            options.responseType == ResponseType.json) &&
+            options.responseType == ResponseType.json || options.responseType == ResponseType.plain) &&
         response.data is String &&
         response.data.isNotEmpty) {
-      response.data = json.decode(response.data);
+      try{
+        response.data = json.decode(response.data);
+      }catch(e){
+        response.data = response.data;
+      }
     }
 
     return response;
