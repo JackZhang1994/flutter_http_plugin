@@ -347,6 +347,7 @@ abstract class Api<D, T extends HttpData<D>> {
         // 解析失败
         httpLog(tag, "数据解析失败");
         // 解析失败回调
+        data._success = false;
         data._message = onParseFailed(data);
       }
     } else if (response.statusCode > 400) {

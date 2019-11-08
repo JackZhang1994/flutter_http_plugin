@@ -22,11 +22,8 @@ Future<httpUtils.Response> request(String tag, httpUtils.Options options) async 
     switch (options.method) {
       case httpUtils.HttpMethod.download:
         httpLog(tag, "下载地址:${options.downloadPath}");
-        dioResponse = await work.dio.download(options.url, options.downloadPath,
-            data: options.params,
-            cancelToken: options.cancelToken.data,
-            options: dioOptions,
-            onReceiveProgress: options.onProgress);
+        dioResponse =
+            await work.dio.download(options.url, options.downloadPath, data: options.params, cancelToken: options.cancelToken.data, options: dioOptions, onReceiveProgress: options.onProgress);
         break;
       case httpUtils.HttpMethod.get:
         dioResponse = await work.dio.get(
@@ -39,7 +36,7 @@ Future<httpUtils.Response> request(String tag, httpUtils.Options options) async 
       case httpUtils.HttpMethod.upload:
         dioResponse = await work.dio.request(
           options.url,
-          data: _onConvertToDio(options.params),
+          data: await _onConvertToDio(options.params),
           cancelToken: options.cancelToken.data,
           options: dioOptions,
           onSendProgress: options.onProgress,
@@ -91,13 +88,13 @@ Future<dio.FormData> _onConvertToDio(Map<String, dynamic> src) async {
 
   final params = Map<String, dynamic>();
 
-  src.forEach((key, value) {
-    if (value is List) {
-      params[key] = value.map(onConvert).toList();
+  for (final entry in src.entries) {
+    if (entry.value is List) {
+      params[entry.key] = await Stream.fromFutures((entry.value as List).map(onConvert)).toList();
     } else {
-      params[key] = onConvert(value);
+      params[entry.key] = await onConvert(entry.value);
     }
-  });
+  }
 
   return dio.FormData.fromMap(params);
 }
@@ -169,16 +166,13 @@ dio.Options _onConfigOptions(String tag, httpUtils.Options options) {
 }
 
 /// 处理dio Response为work的Response
-httpUtils.Response _onParseResponse(
-    String tag, bool success, dio.Response dioResponse) {
+httpUtils.Response _onParseResponse(String tag, bool success, dio.Response dioResponse) {
   if (dioResponse != null) {
     return httpUtils.Response(
       success: success,
       statusCode: dioResponse.statusCode,
       headers: dioResponse.headers?.map,
-      data: dioResponse.request?.responseType == dio.ResponseType.stream
-          ? dioResponse.data.stream
-          : dioResponse.data,
+      data: dioResponse.request?.responseType == dio.ResponseType.stream ? dioResponse.data.stream : dioResponse.data,
     );
   } else {
     return httpUtils.Response();
