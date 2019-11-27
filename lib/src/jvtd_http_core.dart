@@ -46,6 +46,11 @@ class HttpData<T> {
   /// 获取处理完成的最终结果数据(用户接口协议中定义的有效数据转化成的本地类)
   T get result => _result;
 
+  /// 返回实体
+  Response _response;
+
+  Response get response => _response;
+
   /// 任务是否被取消
   bool get cancel => _cancel;
 
@@ -329,6 +334,7 @@ abstract class Api<D, T extends HttpData<D>> {
   void _onParseResponse(Response response, T data) {
     httpLog(tag, "开始解析服务器返回数据");
     data._httpCode = response.statusCode;
+    data._response = response;
 
     if (response.success) {
       // 解析数据
