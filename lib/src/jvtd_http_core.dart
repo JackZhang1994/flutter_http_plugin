@@ -195,7 +195,7 @@ abstract class Api<D, T extends HttpData<D>> {
 
     dynamic data;
     if (paramType() == ParamType.map) {
-      data = Map<String,dynamic>();
+      data = <String, dynamic>{};
       onPreFillParams(data, params);
       onFillParams(data, params);
     } else {
@@ -291,20 +291,20 @@ abstract class Api<D, T extends HttpData<D>> {
   /// * 适合填充项目中所有接口必须传递的固定参数（通过项目中实现的定制[Api]基类完成）
   /// * [data]为请求参数集（http请求要发送的参数），[params]为任务传入的参数列表
   @protected
-  void onPreFillParams(dynamic data, dynamic params) {}
+  void onPreFillParams(Map<String, dynamic> data, Map<String, dynamic> params) {}
 
   /// 填充请求所需的参数
   ///
   /// [data]为请求参数集（http请求要发送的参数），[params]为任务传入的参数列表
   @protected
-  void onFillParams(dynamic data, dynamic params);
+  void onFillParams(Map<String, dynamic> data, Map<String, dynamic> params);
 
   /// 填充请求所需的后置参数
   ///
   /// * 适合对参数进行签名（通过项目中实现的定制[Api]基类完成）
   /// * [data]为请求参数集（http请求要发送的参数），[params]为任务传入的参数列表
   @protected
-  void onPostFillParams(dynamic data, dynamic params) {}
+  void onPostFillParams(Map<String, dynamic> data, Map<String, dynamic> params) {}
 
   /// 创建并填充请求头
   ///
