@@ -7,14 +7,20 @@ class ApiPage extends StatefulWidget {
 }
 
 class _ApiPageState extends State<ApiPage> {
-  GetCodeReqBean _getCodeReqBean;
+  LoginReqBean _loginReqBean;
   GetCodeApi _getCodeApi;
   GetCodeResBean _getCodeResBean;
 
   @override
   void initState() {
     super.initState();
-    _getCodeReqBean = GetCodeReqBean(phone: '13451341117');
+    _loginReqBean = LoginReqBean(
+      mobile: '18611785035',
+      password: 'reanding123',
+      userType: 'student',
+      deviceName: '1111',
+      uuid: '0000',
+    );
   }
 
   @override
@@ -41,7 +47,7 @@ class _ApiPageState extends State<ApiPage> {
                 children: <Widget>[
                   Text('接口传入参数:'),
                   SizedBox(height: 8),
-                  Text(_getCodeReqBean.toJson().toString()),
+                  Text(_loginReqBean.toJson().toString()),
                   SizedBox(height: 16),
                   Text('接口接收参数:'),
                   SizedBox(height: 8),
@@ -57,9 +63,10 @@ class _ApiPageState extends State<ApiPage> {
 
   _getCode() {
     if (_getCodeApi == null) _getCodeApi = GetCodeApi();
-    _getCodeApi.start(params: [_getCodeReqBean.toJson()]).then((value) {
+    _getCodeApi.start(params: _loginReqBean.toJson()).then((value) {
       if (value.success) {
-        _getCodeResBean = value.result;
+//        _getCodeResBean = value.result;
+        print(value.result);
         setState(() {});
       } else {
         _getCodeResBean = null;

@@ -9,20 +9,21 @@ abstract class BaseApi<D> extends SimpleApi<D> {
   BaseApi({this.context});
 
   @override
-  String onUrl(dynamic params) => "http://greenshoe-api.weiyingjia.org/api/" + apiMethod(params);
+  String onUrl(dynamic params) => "http://readingapp.yunpaas.cn/reading-api/" + apiMethod(params);
 
   @protected
   String apiMethod(dynamic params);
 
   @override
   String responseResult() {
-    return 'result';
+    return 'data';
   }
 
   @override
-  void onFillParams(dynamic data, dynamic params) {
-    data["version"] = "V1.0";
-    data["data"] = params;
+  void onFillParams(Map<String, dynamic> data, Map<String, dynamic> params) {
+//    data["version"] = "V1.0";
+//    data["data"] = params;
+    data.addAll(params);
   }
 
   @override
@@ -67,6 +68,12 @@ abstract class BaseApi<D> extends SimpleApi<D> {
 
   @override
   HttpMethod get httpMethod => HttpMethod.post;
+
+  @override
+  Map<String, dynamic> onHeaders(dynamic params) {
+    Map<String, dynamic> data = Map();
+    return data;
+  }
 
   @override
   void onConfigOptions(Options options, dynamic params) {

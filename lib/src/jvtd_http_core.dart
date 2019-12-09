@@ -195,7 +195,7 @@ abstract class Api<D, T extends HttpData<D>> {
 
     dynamic data;
     if (paramType() == ParamType.map) {
-      data = <String, dynamic>{};
+      data = Map<String, dynamic>();
       onPreFillParams(data, params);
       onFillParams(data, params);
     } else {

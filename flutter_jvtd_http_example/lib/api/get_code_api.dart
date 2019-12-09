@@ -4,19 +4,14 @@ import '../bean/get_code_res_bean.dart';
 export '../bean/get_code_res_bean.dart';
 export '../bean/get_code_req_bean.dart';
 
-class GetCodeApi extends BaseApi<GetCodeResBean>{
+class GetCodeApi extends BaseApi<String>{
   @override
   String apiMethod(dynamic params) {
-    return 'user/verifyCode';
+    return 'app/login';
   }
 
   @override
-  GetCodeResBean onExtractResult(resultData, HttpData<GetCodeResBean> data) {
-    return GetCodeResBean.fromJson(resultData);
-  }
-
-  @override
-  ParamType paramType() {
-    return ParamType.list;
+  String onExtractResult(resultData, HttpData<String> data) {
+    return resultData['token'];
   }
 }
