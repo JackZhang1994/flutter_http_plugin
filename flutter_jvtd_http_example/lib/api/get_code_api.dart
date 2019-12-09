@@ -6,12 +6,17 @@ export '../bean/get_code_req_bean.dart';
 
 class GetCodeApi extends BaseApi<GetCodeResBean>{
   @override
-  String apiMethod(Map<String, dynamic> params) {
+  String apiMethod(dynamic params) {
     return 'user/verifyCode';
   }
 
   @override
   GetCodeResBean onExtractResult(resultData, HttpData<GetCodeResBean> data) {
     return GetCodeResBean.fromJson(resultData);
+  }
+
+  @override
+  ParamType paramType() {
+    return ParamType.list;
   }
 }

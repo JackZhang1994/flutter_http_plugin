@@ -24,7 +24,12 @@ class _ApiPageState extends State<ApiPage> {
         title: Text('普通接口'),
         centerTitle: true,
         actions: <Widget>[
-          MaterialButton(onPressed: _getCode, child: Text('调用'),textColor: Colors.white,minWidth: 20,),
+          MaterialButton(
+            onPressed: _getCode,
+            child: Text('调用'),
+            textColor: Colors.white,
+            minWidth: 20,
+          ),
         ],
       ),
       body: CustomScrollView(
@@ -52,7 +57,7 @@ class _ApiPageState extends State<ApiPage> {
 
   _getCode() {
     if (_getCodeApi == null) _getCodeApi = GetCodeApi();
-    _getCodeApi.start(params: _getCodeReqBean.toJson()).then((value) {
+    _getCodeApi.start(params: [_getCodeReqBean.toJson()]).then((value) {
       if (value.success) {
         _getCodeResBean = value.result;
         setState(() {});

@@ -4,6 +4,11 @@ import 'package:meta/meta.dart';
 import 'jvtd_http_print.dart';
 import 'jvtd_http_utils.dart';
 
+enum ParamType {
+  map,
+  list,
+}
+
 /// [Api]返回的数据包装类
 ///
 /// 包含响应的全部数据，[T]类型的业务数据实例，[success]表示成功失败，
@@ -23,7 +28,7 @@ class HttpData<T> {
   dynamic _statusCode;
 
   /// 任务传入参数列表
-  Map<String, dynamic> _params;
+  dynamic _params;
 
   /// 任务结果数据
   T _result;
@@ -41,7 +46,7 @@ class HttpData<T> {
   int get httpCode => _httpCode;
 
   /// 获取任务传入的参数列表
-  Map<String, dynamic> get params => _params;
+  dynamic get params => _params;
 
   /// 获取处理完成的最终结果数据(用户接口协议中定义的有效数据转化成的本地类)
   T get result => _result;
@@ -94,7 +99,7 @@ abstract class Api<D, T extends HttpData<D>> {
   /// * [params]为任务参数列表，[retry]为重试次数，[onProgress]为进度监听器，目前仅上传和下载任务有效。
   /// * 同一个[Api]可以多次启动任务，多次启动的任务会顺序执行。
   Future<T> start({
-    Map<String, dynamic> params,
+    dynamic params,
     int retry = 0,
     OnProgress onProgress,
   }) async {
@@ -185,12 +190,18 @@ abstract class Api<D, T extends HttpData<D>> {
   }
 
   /// 构建请求选项参数
-  Options _onCreateOptions(Map<String, dynamic> params, int retry, OnProgress onProgress) {
+  Options _onCreateOptions(dynamic params, int retry, OnProgress onProgress) {
     httpLog(tag, "构建请求选项参数");
 
-    final data = Map<String, dynamic>();
-    onPreFillParams(data, params);
-    onFillParams(data, params);
+    dynamic data;
+    if (paramType() == ParamType.map) {
+      data = Map<String,dynamic>();
+      onPreFillParams(data, params);
+      onFillParams(data, params);
+    } else {
+      data = [];
+      data.addAll(params);
+    }
 
     final options = Options()
       ..retry = retry
@@ -265,7 +276,7 @@ abstract class Api<D, T extends HttpData<D>> {
   /// 且后续网络请求任务不再执行，任务任然可以正常返回并执行生命周期[onFailed]，[onFinish]。
   /// * 参数合法返回true，非法返回false。
   @protected
-  bool onCheckParams(Map<String, dynamic> params) => true;
+  bool onCheckParams(dynamic params) => true;
 
   /// 参数检测不合法时调用
   ///
@@ -273,33 +284,33 @@ abstract class Api<D, T extends HttpData<D>> {
   /// 但是任务任然可以正常返回并执行生命周期[onFailed]，[onFinish]。
   /// * 返回错误消息内容，将会设置给[HttpData.message]
   @protected
-  String onParamsError(Map<String, dynamic> params) => null;
+  String onParamsError(dynamic params) => null;
 
   /// 填充请求所需的前置参数
   ///
   /// * 适合填充项目中所有接口必须传递的固定参数（通过项目中实现的定制[Api]基类完成）
   /// * [data]为请求参数集（http请求要发送的参数），[params]为任务传入的参数列表
   @protected
-  void onPreFillParams(Map<String, dynamic> data, Map<String, dynamic> params) {}
+  void onPreFillParams(dynamic data, dynamic params) {}
 
   /// 填充请求所需的参数
   ///
   /// [data]为请求参数集（http请求要发送的参数），[params]为任务传入的参数列表
   @protected
-  void onFillParams(Map<String, dynamic> data, Map<String, dynamic> params);
+  void onFillParams(dynamic data, dynamic params);
 
   /// 填充请求所需的后置参数
   ///
   /// * 适合对参数进行签名（通过项目中实现的定制[Api]基类完成）
   /// * [data]为请求参数集（http请求要发送的参数），[params]为任务传入的参数列表
   @protected
-  void onPostFillParams(Map<String, dynamic> data, Map<String, dynamic> params) {}
+  void onPostFillParams(dynamic data, dynamic params) {}
 
   /// 创建并填充请求头
   ///
   /// [params]为任务传入的参数
   @protected
-  Map<String, dynamic> onHeaders(Map<String, dynamic> params) => null;
+  Map<String, dynamic> onHeaders(dynamic params) => null;
 
   /// 拦截创建网络请求工具
   ///
@@ -318,7 +329,7 @@ abstract class Api<D, T extends HttpData<D>> {
   /// [onHeaders]中创建的请求头，
   /// 以上属性都可以在这里被覆盖可以被覆盖。
   @protected
-  void onConfigOptions(Options options, Map<String, dynamic> params) {}
+  void onConfigOptions(Options options, dynamic params) {}
 
   /// 网络请求方法
   @protected
@@ -328,7 +339,7 @@ abstract class Api<D, T extends HttpData<D>> {
   ///
   /// [params]任务传入的参数
   @protected
-  String onUrl(Map<String, dynamic> params);
+  String onUrl(dynamic params);
 
   /// 解析响应数据
   void _onParseResponse(Response response, T data) {
@@ -513,6 +524,10 @@ abstract class Api<D, T extends HttpData<D>> {
   /// 该方法在[onFinish]之前被调用
   @protected
   void onFailed(T data) {}
+
+  ParamType paramType() {
+    return ParamType.map;
+  }
 
   /// 取消正在进行的任务
   ///

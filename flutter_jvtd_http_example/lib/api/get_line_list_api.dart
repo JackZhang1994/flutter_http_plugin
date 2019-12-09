@@ -6,7 +6,7 @@ export '../bean/get_line_list_bean.dart';
 
 class GetLineListApi extends BasePagingApi<List<LineBean>> {
   @override
-  String apiMethod(Map<String, dynamic> params) {
+  String apiMethod(dynamic params) {
     return 'route/queryRouteList';
   }
 

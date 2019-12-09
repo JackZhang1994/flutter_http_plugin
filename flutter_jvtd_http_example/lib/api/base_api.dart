@@ -9,10 +9,10 @@ abstract class BaseApi<D> extends SimpleApi<D> {
   BaseApi({this.context});
 
   @override
-  String onUrl(Map<String, dynamic> params) => "http://greenshoe-api.weiyingjia.org/api/" + apiMethod(params);
+  String onUrl(dynamic params) => "http://greenshoe-api.weiyingjia.org/api/" + apiMethod(params);
 
   @protected
-  String apiMethod(Map<String, dynamic> params);
+  String apiMethod(dynamic params);
 
   @override
   String responseResult() {
@@ -20,7 +20,7 @@ abstract class BaseApi<D> extends SimpleApi<D> {
   }
 
   @override
-  void onFillParams(Map<String, dynamic> data, Map<String, dynamic> params) {
+  void onFillParams(dynamic data, dynamic params) {
     data["version"] = "V1.0";
     data["data"] = params;
   }
@@ -46,7 +46,7 @@ abstract class BaseApi<D> extends SimpleApi<D> {
   }
 
   @override
-  String onParamsError(Map<String, dynamic> params) {
+  String onParamsError(dynamic params) {
     return '接口参数错误';
   }
 
@@ -69,7 +69,7 @@ abstract class BaseApi<D> extends SimpleApi<D> {
   HttpMethod get httpMethod => HttpMethod.post;
 
   @override
-  void onConfigOptions(Options options, Map<String, dynamic> params) {
+  void onConfigOptions(Options options, dynamic params) {
     options.contentType = 'application/json; charset=utf-8';
   }
 }
