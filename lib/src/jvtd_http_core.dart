@@ -348,6 +348,10 @@ abstract class Api<D, T extends HttpData<D>> {
     data._httpCode = response.statusCode;
     data._response = response;
 
+    if(!isHttpSuccess()){
+      response.success = true;//用于睿丁异常抛出
+    }
+
     if (response.success) {
       // 解析数据
       //noinspection unchecked
@@ -528,6 +532,10 @@ abstract class Api<D, T extends HttpData<D>> {
 
   ParamType paramType() {
     return ParamType.map;
+  }
+
+  bool isHttpSuccess(){
+    return true;
   }
 
   /// 取消正在进行的任务
