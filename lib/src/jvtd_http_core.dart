@@ -349,7 +349,7 @@ abstract class Api<D, T extends HttpData<D>> {
     data._response = response;
 
     if(!isHttpSuccess()){
-      response.success = true;//用于睿丁异常抛出
+      response.success = data._httpCode != 0;//用于睿丁异常抛出
     }
 
     if (response.success) {
