@@ -1,13 +1,15 @@
 name: jvtd_http
-description: 聚通达网络框架
+description: jvtd_http
 version: 0.0.3
-author: 陈磊
+author: chenlei
 homepage: https://github.com/JvtdFlutter/http
 
 environment:
   sdk: ">=2.1.0 <3.0.0"
 
 dependencies:
+  flutter:
+    sdk: flutter
   # https://pub.dartlang.org/packages/dio
   # Dart的一个强大的Http客户端，支持拦截器、全局配置、FormData、请求取消、文件下载、超时等。
   dio: ^3.0.4

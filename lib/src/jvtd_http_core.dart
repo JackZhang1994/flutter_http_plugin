@@ -162,7 +162,11 @@ abstract class Api<D, T extends HttpData<D>> {
       _lastFuture = null;
     }
 
-    completer.complete(data);
+    if (_cancelMark) {
+      completer.completeError(data);
+    } else {
+      completer.complete(data);
+    }
 
     return completer.future;
   }
@@ -235,7 +239,9 @@ abstract class Api<D, T extends HttpData<D>> {
     }
 
     final response = await communication.request(tag, options);
-
+    if (response == null) {
+      _cancelMark = true;
+    }
     if (_cancelMark) {
       return;
     }
@@ -348,8 +354,8 @@ abstract class Api<D, T extends HttpData<D>> {
     data._httpCode = response.statusCode;
     data._response = response;
 
-    if(!isHttpSuccess()){
-      response.success = data._httpCode != 0;//用于睿丁异常抛出
+    if (!isHttpSuccess()) {
+      response.success = data._httpCode != 0; //用于睿丁异常抛出
     }
 
     if (response.success) {
@@ -534,7 +540,7 @@ abstract class Api<D, T extends HttpData<D>> {
     return ParamType.map;
   }
 
-  bool isHttpSuccess(){
+  bool isHttpSuccess() {
     return true;
   }
 

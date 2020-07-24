@@ -35,7 +35,9 @@ class JvtdHttpUtils {
         httpLog(tag, "重试:第$i次");
       }
       response = await http.request(tag, options);
-
+      if (response == null) {
+        break;
+      }
       if (response.success) {
         break;
       }
@@ -43,15 +45,17 @@ class JvtdHttpUtils {
 
     httpLog(tag, "http", response);
 
+    if (response == null) {
+      return response;
+    }
     // 转换类型
     if (response.success &&
-        (options.responseType == null ||
-            options.responseType == ResponseType.json || options.responseType == ResponseType.plain) &&
+        (options.responseType == null || options.responseType == ResponseType.json || options.responseType == ResponseType.plain) &&
         response.data is String &&
         response.data.isNotEmpty) {
-      try{
+      try {
         response.data = json.decode(response.data);
-      }catch(e){
+      } catch (e) {
         response.data = response.data;
       }
     }
