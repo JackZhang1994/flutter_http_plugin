@@ -7,18 +7,14 @@ import 'package:meta/meta.dart';
 
 void main() {
   GetCaptchaImageApi api;
-  api?.cancel();
-  api = null;
   api = GetCaptchaImageApi();
   api.start(params: {"data":{}}).then((res){
     print(res);
   });
-  api.cancel();
-  api = null;
-  api = GetCaptchaImageApi();
-  api.start(params: {"data":{}}).then((res){
-    print(res);
-  });
+//  api = GetCaptchaImageApi();
+//  api.start(params: {"data":{}}).then((res){
+//    print(res);
+//  });
 }
 /// 获取图形验证码1
 class GetCaptchaImageApi extends OaBaseApi<String> {

@@ -162,11 +162,7 @@ abstract class Api<D, T extends HttpData<D>> {
       _lastFuture = null;
     }
 
-    if (_cancelMark) {
-      completer.completeError(data);
-    } else {
-      completer.complete(data);
-    }
+    completer.complete(data);
 
     return completer.future;
   }

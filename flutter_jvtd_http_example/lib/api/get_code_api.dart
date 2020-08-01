@@ -1,17 +1,19 @@
 import 'package:jvtd_http/jvtd_http.dart';
 import 'base_api.dart';
-import '../bean/get_code_res_bean.dart';
-export '../bean/get_code_res_bean.dart';
-export '../bean/get_code_req_bean.dart';
+/// 获取图形验证码1
+class GetCaptchaImageApi extends OaBaseApi<String> {
+  GetCaptchaImageApi() : super();
 
-class GetCodeApi extends BaseApi<String>{
   @override
-  String apiMethod(dynamic params) {
-    return 'app/login';
+  bool isToken() => false;
+
+  @override
+  String apiMethod(params) {
+    return 'bp2/bp/auth/getImgCode';
   }
 
   @override
   String onExtractResult(resultData, HttpData<String> data) {
-    return resultData['token'];
+    return resultData;
   }
 }
