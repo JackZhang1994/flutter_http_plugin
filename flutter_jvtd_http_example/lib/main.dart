@@ -26,6 +26,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   GetCaptchaImageApi _getCaptchaImageApi;
+  WorkingHoursApi _workingHoursApi;
   int _index = 0;
 
   @override
@@ -57,16 +58,10 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           ListTile(
             title: Text(
-              '分页接口',
+              '刷工时',
               textAlign: TextAlign.center,
             ),
-            onTap: () {
-//              _getImageCode();
-//              _getImageCode();
-              for (int i = 0; i < 10; i++) {
-                _getImageCode();
-              }
-            },
+            onTap: _workingHours,
           )
         ],
       ),
@@ -76,8 +71,38 @@ class _MyHomePageState extends State<MyHomePage> {
   _getImageCode() {
     _getCaptchaImageApi?.cancel();
     if (_getCaptchaImageApi == null) _getCaptchaImageApi = GetCaptchaImageApi();
-    _getCaptchaImageApi.start(params: {"data": {}, "requestId": '123'}).then((res) {
+    _getCaptchaImageApi.start(params: {"data": {}, "requestId": '123'}).then((res) {});
+  }
 
-    });
+  void _workingHours() {
+    String taskId = 'm6vz8949d8';
+    int tHours = 8;
+    String token = 'MTA3LTQtQ1dBXl9eLWx2SHFiOTFnME55S2R1QSt6MmlEb3pjeE56TmhPVE14TXpnMU1EVmxZVGRrTkRZd1ptSmxaVEF4TlRoalpUa3lPR0ZsTm1Kak1qZGhZelEzWXpGbVpHUmxZVGRrT1dFNVpUaG1ZemxsWlRFdXZENTM0QkI5b0JMRG5weUdBWDM4bjVrL29TVlFtQXZFUkVhMzBnN1VOdz09';
+
+    DateTime start = DateTime(2020, 4, 1);
+    DateTime end = DateTime(2020, 7, 31);
+    if (_workingHoursApi == null) _workingHoursApi = WorkingHoursApi(token);
+
+    DateTime now = start;
+    int e = end.compareTo(now);
+    print(e);
+
+    while (end.compareTo(now) == 1) {
+      String time = '${now.year}-${now.month}-${now.day}';
+      String weekday = '星期${now.weekday}';
+      if (now.weekday != 6 && now.weekday != 7) {
+        print('今天是$time,$weekday');
+        _workingHoursApi.start(params: {
+          't_date': time,
+          'task_id': taskId,
+          't_hours': tHours,
+          'des':'',
+        });
+      } else {
+        print('今天是$time,$weekday');
+        print('今天放假了');
+      }
+      now = now.add(Duration(days: 1));
+    }
   }
 }

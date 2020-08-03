@@ -6,16 +6,17 @@ import 'package:jvtd_http/jvtd_http.dart';
 import 'package:meta/meta.dart';
 
 void main() {
-  GetCaptchaImageApi api;
-  api = GetCaptchaImageApi();
-  api.start(params: {"data":{}}).then((res){
-    print(res);
-  });
+//  GetCaptchaImageApi api;
+//  api = GetCaptchaImageApi();
+//  api.start(params: {"data":{}}).then((res){
+//    print(res);
+//  });
 //  api = GetCaptchaImageApi();
 //  api.start(params: {"data":{}}).then((res){
 //    print(res);
 //  });
 }
+
 /// 获取图形验证码1
 class GetCaptchaImageApi extends OaBaseApi<String> {
   GetCaptchaImageApi() : super();
