@@ -56,9 +56,6 @@ Future<httpUtils.Response> request(String tag, httpUtils.Options options) async 
     success = true;
   } on dio.DioError catch (e) {
     httpLog(tag, "http 错误", e.type);
-    if(e.type == dio.DioErrorType.CANCEL){
-      return null;
-    }
     dioResponse = e.response;
     success = false;
   } catch (e) {
