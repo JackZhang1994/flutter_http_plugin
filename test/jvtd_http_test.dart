@@ -1,7 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter_test/flutter_test.dart';
-
 import 'package:jvtd_http/jvtd_http.dart';
 import 'package:meta/meta.dart';
 
