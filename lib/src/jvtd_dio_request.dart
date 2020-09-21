@@ -100,7 +100,7 @@ Future<dio.FormData> _onConvertToDio(Map<String, dynamic> src) async {
 
 /// 生成dio专用配置
 dio.Options _onConfigOptions(String tag, httpUtils.Options options) {
-  final dioOptions = dio.Options();
+  final dioOptions = dio.RequestOptions();
 
   switch (options.method) {
     case httpUtils.HttpMethod.get:
@@ -146,6 +146,7 @@ dio.Options _onConfigOptions(String tag, httpUtils.Options options) {
   dioOptions.contentType = options.contentType;
   dioOptions.receiveTimeout = options.readTimeout;
   dioOptions.sendTimeout = options.sendTimeout;
+  dioOptions.connectTimeout = options.connectTimeout;
 
   if (options.cancelToken.data is! dio.CancelToken) {
     httpUtils.CancelToken cancelToken = options.cancelToken;
