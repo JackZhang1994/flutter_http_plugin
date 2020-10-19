@@ -16,6 +16,7 @@ Future<httpUtils.Response> request(String tag, httpUtils.Options options) async 
   final dioOptions = _onConfigOptions(tag, options);
 
   dio.Response dioResponse;
+  dynamic dioError;
 
   httpUtils.HttpErrorType errorType;
 
@@ -79,6 +80,7 @@ Future<httpUtils.Response> request(String tag, httpUtils.Options options) async 
     httpLog(tag, "http 错误", e.type);
     dioResponse = e.response;
     success = false;
+    dioError = e.error;
     errorType = _onConvertErrorType(e.type);
   } catch (e) {
     httpLog(tag, "http 其他错误", e);
@@ -90,10 +92,9 @@ Future<httpUtils.Response> request(String tag, httpUtils.Options options) async 
       success: success,
       statusCode: dioResponse.statusCode,
       headers: dioResponse.headers?.map,
-      data: dioResponse.request?.responseType == dio.ResponseType.stream
-          ? dioResponse.data.stream
-          : dioResponse.data,
+      data: dioResponse.request?.responseType == dio.ResponseType.stream ? dioResponse.data.stream : dioResponse.data,
       errorType: errorType,
+      dioError: dioError,
       receiveByteCount: receiveByteCount,
     );
   } else {

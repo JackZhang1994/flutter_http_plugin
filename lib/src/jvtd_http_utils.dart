@@ -138,6 +138,7 @@ class Response {
     this.headers,
     this.statusCode = 0,
     this.errorType,
+    this.dioError,
     this.receiveByteCount = 0,
   });
 
@@ -157,6 +158,8 @@ class Response {
 
   /// 异常类型，为空表示无异常
   HttpErrorType errorType;
+
+  dynamic dioError;
 
   /// 总接收子节数
   int receiveByteCount;
@@ -196,8 +199,7 @@ class CancelToken {
 
 /// 描述要上传的文件信息
 class UploadFileInfo {
-  UploadFileInfo._raw(
-      {this.stream, this.length, this.filePath, this.fileName, this.mimeType});
+  UploadFileInfo._raw({this.stream, this.length, this.filePath, this.fileName, this.mimeType});
 
   /// 使用[filePath]创建上传文件
   ///
@@ -207,33 +209,17 @@ class UploadFileInfo {
 
     mimeType ??= lookupMimeType(fileName);
 
-    return UploadFileInfo._raw(
-        stream: null,
-        filePath: filePath,
-        fileName: fileName,
-        mimeType: mimeType);
+    return UploadFileInfo._raw(stream: null, filePath: filePath, fileName: fileName, mimeType: mimeType);
   }
 
   /// 使用文件的字节流[bytes]创建上传文件
-  factory UploadFileInfo.bytes(List<int> bytes,
-      {String fileName, String mimeType}) {
-    return UploadFileInfo._raw(
-        stream: Stream.fromIterable([bytes]),
-        length: bytes.length,
-        filePath: null,
-        fileName: fileName,
-        mimeType: mimeType);
+  factory UploadFileInfo.bytes(List<int> bytes, {String fileName, String mimeType}) {
+    return UploadFileInfo._raw(stream: Stream.fromIterable([bytes]), length: bytes.length, filePath: null, fileName: fileName, mimeType: mimeType);
   }
 
   /// 使用文件的字节流[stream]创建上传文件
-  factory UploadFileInfo.stream(Stream<List<int>> stream, int length,
-      {String fileName, String mimeType}) {
-    return UploadFileInfo._raw(
-        stream: stream,
-        length: length,
-        filePath: null,
-        fileName: fileName,
-        mimeType: mimeType);
+  factory UploadFileInfo.stream(Stream<List<int>> stream, int length, {String fileName, String mimeType}) {
+    return UploadFileInfo._raw(stream: stream, length: length, filePath: null, fileName: fileName, mimeType: mimeType);
   }
 
   /// 文件字节流
@@ -257,8 +243,7 @@ class UploadFileInfo {
   final String mimeType;
 
   @override
-  String toString() =>
-      "UploadFileInfo:'$filePath' fileName:$fileName mimeType:$mimeType";
+  String toString() => "UploadFileInfo:'$filePath' fileName:$fileName mimeType:$mimeType";
 }
 
 /// 响应数据格式
