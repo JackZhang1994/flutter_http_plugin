@@ -1,6 +1,6 @@
 name: jvtd_http
 description: jvtd_http
-version: 0.2.0+3
+version: 0.2.0+4
 author: chenlei
 homepage: https://github.com/JvtdFlutter/http
 
@@ -12,7 +12,7 @@ dependencies:
     sdk: flutter
   # https://pub.dartlang.org/packages/dio
   # Dart的一个强大的Http客户端，支持拦截器、全局配置、FormData、请求取消、文件下载、超时等。
-  dio: 3.0.4
+  dio: ^3.0.10
   mime: ^0.9.7
   meta: ^1.1.6
 

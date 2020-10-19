@@ -84,6 +84,7 @@ Future<httpUtils.Response> request(String tag, httpUtils.Options options) async 
     errorType = _onConvertErrorType(e.type);
   } catch (e) {
     httpLog(tag, "http 其他错误", e);
+    dioError = e;
     errorType = httpUtils.HttpErrorType.other;
   }
 
@@ -98,7 +99,7 @@ Future<httpUtils.Response> request(String tag, httpUtils.Options options) async 
       receiveByteCount: receiveByteCount,
     );
   } else {
-    return httpUtils.Response(errorType: errorType);
+    return httpUtils.Response(errorType: errorType, dioError: dioError);
   }
 }
 
@@ -142,6 +143,10 @@ dio.Options _onConfigOptions(String tag, httpUtils.Options options) {
     case httpUtils.HttpMethod.delete:
       dioOptions.method = "DELETE";
       break;
+  }
+
+  if (options.method == httpUtils.HttpMethod.upload) {
+    dioOptions.contentType = httpUtils.formData;
   }
 
   if (options.responseType != null) {
