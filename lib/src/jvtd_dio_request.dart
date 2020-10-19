@@ -7,7 +7,7 @@ import 'jvtd_http_print.dart';
 import 'jvtd_http_utils.dart' as httpUtils;
 import 'jvtd_http_config.dart' as work;
 
-import 'convert/jvtd_http_convert.dart' if (dart.library.html) 'convert/_convert_web.dart' if (dart.library.io) 'convert/_convert_native.dart';
+import 'convert/jvtd_http_convert.dart' if (dart.library.html) 'convert/jvtd_http_convert_web.dart' if (dart.library.io) 'convert/jvtd_http_convert_native.dart';
 
 /// 发起请求
 ///
