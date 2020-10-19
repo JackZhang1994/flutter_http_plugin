@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:meta/meta.dart';
 import 'jvtd_http_utils.dart';
 import 'jvtd_http_core.dart';
@@ -25,31 +27,36 @@ abstract class SimpleApi<D> extends Api<D, HttpData<D>> {
   @override
   HttpData<D> onCreateApiData() => HttpData<D>();
 
+  @override
+  FutureOr<bool> onCheckResponse(HttpData<D> data) {
+   return data.response.data != null;
+  }
+
   /// 响应字段配置
   @protected
   String responseResult();
 
   @override
-  D onResponseSuccess(response, HttpData<D> data) =>
+  FutureOr<D> onResponseSuccess(response, HttpData<D> data) =>
       response[responseResult()] == null
           ? onDefaultResult(data)
           : onExtractResult(response[responseResult()], data);
 
   @override
-  bool onResponseResult(response) => response["state"];
+  FutureOr<bool> onResponseResult(response) => response["state"];
 
   @mustCallSuper
   @override
-  D onRequestFailed(response, HttpData<D> data) {
+  FutureOr<D> onRequestFailed(response, HttpData<D> data) {
     return super.onRequestFailed(response, data);
   }
 
   @override
-  String onRequestSuccessMessage(response, HttpData<D> data) =>
+  FutureOr<String> onRequestSuccessMessage(response, HttpData<D> data) =>
       response["message"];
 
   @override
-  String onRequestFailedMessage(response, HttpData<D> data) =>
+  FutureOr<String> onRequestFailedMessage(response, HttpData<D> data) =>
       response["message"];
 
   /// 生成响应成功的结果数据
@@ -59,39 +66,39 @@ abstract class SimpleApi<D> extends Api<D, HttpData<D>> {
   /// * 返回装配后的本地数据对象
   /// * [data]为将要返回的数据包装类，包含有传入的参数[data.params]
   @protected
-  D onExtractResult(resultData, HttpData<D> data);
+  FutureOr<D> onExtractResult(resultData, HttpData<D> data);
 
   /// 生成响应成功的默认结果数据
   ///
   /// * 当请求成功且返回结果不存在[result]标签或值为null时被调用，默认实现为null
   /// * [data]为将要返回的数据包装类，包含有传入的参数[data.params]
   @protected
-  D onDefaultResult(HttpData<D> data) => null;
+  FutureOr<D> onDefaultResult(HttpData<D> data) => null;
 }
 
 /// 简化的下载专用[Api]类
 ///
 /// * 适用于下载文件任务，其他类型任务请使用[SimpleApi]
-abstract class SimpleDownloadApi extends Api<Null, HttpData<Null>> {
-  HttpData<Null> onCreateWorkData() => HttpData<Null>();
+abstract class SimpleDownloadApi extends Api<void, HttpData<void>> {
+  HttpData<void> onCreateWorkData() => HttpData<void>();
 
   @override
-  Null onResponseSuccess(response, HttpData data) => null;
+  FutureOr<void> onResponseSuccess(response, HttpData data) => null;
 
   @override
-  bool onResponseResult(response) => true;
+  FutureOr<bool> onResponseResult(response) => true;
 
   @override
   HttpMethod get httpMethod => HttpMethod.download;
 
   @mustCallSuper
   @override
-  void onConfigOptions(Options options, dynamic params) {
+  FutureOr<void> onConfigOptions(Options options, dynamic params) {
     options.downloadPath = onDownloadPath(params);
   }
 
   /// 设置下载文件路径
   ///
   /// [params]为任务传入参数，返回下载文件要保存的位置路径
-  String onDownloadPath(dynamic params);
+  FutureOr<String> onDownloadPath(dynamic params);
 }

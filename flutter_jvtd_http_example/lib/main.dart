@@ -56,39 +56,44 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _initData(BuildContext context) {
-    _startTime = DateTime(2020, 8, 1);
-    _endTime = DateTime(2020, 9, 1);
-    String appTaskId = 'kjbzpr8azr';
+    _startTime = DateTime(2020, 9, 1);
+    _endTime = DateTime(2020, 10, 1);
+    String _clTaskId = 'm6vz8x6gz8';
+    String _clToken =
+        'NTMtNC1DV0FeX14tMlFtcjBKVDhvaCtFMTgzN1BlL0U3emd4TnprMVpHVTJaVGN3WVdOaE1ETXpNRFE1TnpJME1tSmxNVGxpTW1aaE5qVmxOelJqWkRGak1XTmtOakUxWXpFMlpXVTBNMlppTldaaU9UVTNZakZDa09yTVY5cjZMaG9kUmJNblYxWFZFRzlWTjlsaUxPVmMraGQ2QzZSTk1BPT0=';
+    String _zjfTaskId = 'xv7zxyrrdy';
+    String _zjfToken =
+        'MzgtNC1DV0FeX14tZGswV0s3eG83QitzTDZYZzVwMEY0emRrTVRZNU9XVTJOVE15TkRZMVpEUXdOVFJrWVdZNU5XVTNaRE16TkRnM01qbGtZbVV3T0RWallqRTNOelpoWkRJME5EWmtObVJsT1RaallqWTFOVGx0TmVKeitGOGgvVlBMWVJ2MWV0MDkrVGppbVF6V0RjRUs0RHJ5Y0k4RCtBPT0=';
+    String _zyzTaskId = 'kjbdpbpndr';
+    String _zyzToken =
+        'MTA3LTQtQ1dBXl9eLTZyc0dSK01lcUtOTXRhTy8zL1hkeXpoaFlqWTJPRFV3T1Rnd016TXpaak15TWpneU1EZzRNbVV3TjJNNVkyTTFNVGRtTldKa1pqTTNZMk00T1RVellUTXdaVE5qWTJVNE1XUXpORGRrTldJUWU0YkQrTjJuSFg3ZnlNd3BCcFVCREphVC9jU0dwaUtlbm82QzZoNHJsdz09';
+    String _zydTaskId = 'ak9zar44dy';
+    String _zydToken =
+        'MzktNC1DV0FeX14ta0RhczkwQ0ZiL3FNK3Q3Y0Rua0pTekU0TlRKaU16aGxOalE0TVRGbE4yVm1aREUzTjJOaU1qUmpaREkxWVdabFptSXpZekF4TVdGa1lUTmpOV1poWkdRNU16Z3hZbVJoTmpaa09UTXpPV1loWUVVWmdISHlweVdJTjJxaUtWd3QvOUEwc0cySGdZaUt4cExwMWwyeDV3PT0=';
+    String _gjmTaskId = 'q54znge4dg';
+    String _gjmToken =
+        'MzctNC1DV0FeX14tQXpoWjlBTXZ4V1V0UldRTGdFMitobUV4TVROaE5UUmhZMlUzT0daaU5qRXhaak16WlRCaVpXSmpNVEU1TmpJNU9HRTFZall4WkRObE56TXhNVEE0TURkak9ESmhNV1l4TW1VNE5EQXhPVERzZlNhRTRrOTh4TkxHQWs1djByT3VsSlN0L3JsS1hLako2VEZjSm9rVXVBPT0=';
     _userList = [
       WorkingHoursEntity(
         name: '陈磊',
-        taskId: appTaskId,
-        token:
-            'NTMtNC1DV0FeX14tTjVmdU04RjNRTVlxaTdwZjU2RllZVEF6TkdKa05UaGlOV00wT1RSa00yVXlOakU0TXpsaU5UZGhNbUU1WXpZMU1HRmxaVEF5TURsa09UWTRaakkwTXpVMlpEUXlNRFV6TVdRNU5UY3dObU5QU1NrcUxHNVBtTVRJbzhlNUMrd2IwMVpJZnRudkttaHZIaEdQdlJqM2h3PT0=',
+        taskId: _clTaskId,
+        token: _clToken,
       ),
-      WorkingHoursEntity(
-        name: '张健夫',
-        taskId: appTaskId,
-        token:
-            'MzgtNC1DV0FeX14tZ2YzSHhnUkFsR2x5ZEVEOXJ3K0IrRE5sTUROalpEWXpOelU1WXpJelpUSmtPRGs0WmpobFltRmpOVFJsTVRCbVlUaGtaalpoWkdJME5EazJOV1kwTlRnellqQmtOVEZrTWpVNU9UQTNOekVHNXlrb0oraXRDd0ltam5jZjUwUi84NTV3Z2plZllEaHhtWHh5MXU4S2t3PT0=',
-      ),
+      WorkingHoursEntity(name: '张健夫', taskId: _zjfTaskId, token: _zjfToken),
       WorkingHoursEntity(
         name: '葛建民',
-        taskId: appTaskId,
-        token:
-            'MzctNC1DV0FeX14tTDRMOXFybVo3MWRTZWpDbjl4TWd1elJqT0RJNVpHRmhOV05tWlROaU5UVmlOek5tWVdOaVltWTJaREZrTURjelkyTXpOV0l5TUdFek1ESmlOMlpsTmpCa1ltTmtPV000Tnpsak4yWTBaamp5WXE1SEw2MUVaeEF0NXVKTnVIMnk2eWRMNDE3RWVUcVU3S1N2UTVaWk13PT0=',
+        taskId: _gjmTaskId,
+        token: _gjmToken,
       ),
       WorkingHoursEntity(
         name: '赵远东',
-        taskId: appTaskId,
-        token:
-            'MzktNC1DV0FeX14tM0FkazJ4cFpVdDlQMVltZ0k3RTRuV1ZtT0dJNVlqWTVaREpoTXpFNVlXWXhZVFk0T1RobU5UUTJOR1V5TkdZeE5tVTJPR0psTldVek16Sm1ZMlZsTm1WaVptVmlOMlprTVdVd1kyRXlOek5qRjh2dXJPRkhzOU03SjVvVUlXci9yeFpJWVRpTVpDejNqekRrRytzaGJBPT0=',
+        taskId: _zydTaskId,
+        token: _zydToken,
       ),
       WorkingHoursEntity(
         name: '祝又忠',
-        taskId: appTaskId,
-        token:
-            'MTA3LTQtQ1dBXl9eLS90MldDWnJxZC9xdE1DaTJvUUwxcFRSbVpXSmxPVFpqTW1VM1ptVmtPVEppWmpOaE9XTTRZVFJsTXpWaFkyRmhaR05rTURoaVltSXlaakkzWldFMFpXWmlNRFk0TXpZNFpXTmhOV00zTnprV29FVjRLRUVGVkJBWUdqemhhK1JJQ2V5dFQvY1hpQUFUWXpJeEk1ZTFCUT09',
+        taskId: _zyzTaskId,
+        token: _zyzToken,
       ),
     ];
   }

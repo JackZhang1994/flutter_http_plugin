@@ -30,11 +30,23 @@ class HttpData<T> {
   /// 任务传入参数列表
   dynamic _params;
 
+  /// 用于网络请求使用的参数
+  Options _options;
+
+  /// 返回实体
+  Response _response;
+
   /// 任务结果数据
   T _result;
 
   /// 任务取消标志
   bool _cancel = false;
+
+  /// 在一次[Api]执行生命周期中传递的自定义数据
+  ///
+  /// 通常在[Api]的某个生命周期方法中创建，以便在另一个生命周期中使用。
+  /// 此额外属性并不参与网络请求
+  dynamic extra;
 
   /// 判断本次服务请求是否成功(用户接口协议约定的请求结果，并非http的请求结果，但是http请求失败时该值总是返回false)
   bool get success => _success;
@@ -51,8 +63,8 @@ class HttpData<T> {
   /// 获取处理完成的最终结果数据(用户接口协议中定义的有效数据转化成的本地类)
   T get result => _result;
 
-  /// 返回实体
-  Response _response;
+  /// 用于网络请求使用的参数
+  Options get options => _options;
 
   Response get response => _response;
 
@@ -101,7 +113,8 @@ abstract class Api<D, T extends HttpData<D>> {
   Future<T> start({
     dynamic params,
     int retry = 0,
-    OnProgress onProgress,
+    OnProgress onSendProgress,
+    OnProgress onReceiveProgress,
   }) async {
     final counter = ++_counter;
 
@@ -127,31 +140,45 @@ abstract class Api<D, T extends HttpData<D>> {
 
     if (!_cancelMark) {
       // 执行前导任务
-      next = onStart(data);
+      next = await _onStart(data);
     }
 
     if (!_cancelMark && next) {
       // 构建http请求选项
-      final options = _onCreateOptions(params, retry, onProgress);
+      data._options = await _onCreateOptions(params, retry, onSendProgress, onReceiveProgress);
       // 执行核心任务
-      await _onDo(options, data);
+      await _onDo(data);
     }
 
     if (!_cancelMark) {
       // 执行后继任务
-      onStop(data);
+      await onStop(data);
     }
 
     if (!_cancelMark) {
       // 最后执行
       httpLog(tag, "api完成调用");
-      onFinish(data);
+      try {
+        final finish = onFinish(data);
+        if (finish is Future<void>) {
+          await finish;
+        }
+      } catch (e) {
+        httpLog(tag, 'api完成调用失败', e);
+      }
     }
 
     if (_cancelMark) {
       // 任务被取消
       httpLog(tag, "api取消调用");
-      onCanceled(data);
+      try {
+        final canceled = onCanceled(data);
+        if (canceled is Future<void>) {
+          await canceled;
+        }
+      } catch (e) {
+        httpLog(tag, 'api取消调用失败', e);
+      }
     }
 
     httpLog(tag, "No.$counter 结束");
@@ -176,13 +203,20 @@ abstract class Api<D, T extends HttpData<D>> {
   /// [data]为任务将要返回的数据模型，返回true表示继续执行
   @protected
   @mustCallSuper
-  bool onStart(T data) {
+  Future<bool> _onStart(T data) async {
     // 校验参数
-    if (!onCheckParams(data.params)) {
+    final check = onCheckParams(data.params);
+    final checkResult = (check is Future<bool>) ? await check : check;
+    if (!checkResult) {
       // 数据异常
       httpLog(tag, "数据异常");
       // 执行异常回调
-      data._message = onParamsError(data.params);
+      final message = onParamsError(data.params);
+      if (message is Future<String>) {
+        data._message = await message;
+      } else {
+        data._message = message;
+      }
       return false;
     }
 
@@ -190,15 +224,26 @@ abstract class Api<D, T extends HttpData<D>> {
   }
 
   /// 构建请求选项参数
-  Options _onCreateOptions(dynamic params, int retry, OnProgress onProgress) {
+  Future<FutureOr<Options>> _onCreateOptions(
+    dynamic params,
+    int retry,
+    OnProgress onSendProgress,
+    OnProgress onReceiveProgress,
+  ) async {
     httpLog(tag, "构建请求选项参数");
 
     dynamic data;
     if (paramType() == ParamType.map) {
       data = Map<String, dynamic>();
       params = Map<String, dynamic>.from(params);
-      onPreFillParams(data, params);
-      onFillParams(data, params);
+      final preFillParams = onPreFillParams(data, params);
+      if (preFillParams is Future<void>) {
+        await preFillParams;
+      }
+      final fillParams = onFillParams(data, params);
+      if (fillParams is Future<void>) {
+        await fillParams;
+      }
     } else {
       data = [];
       data.addAll(params);
@@ -206,13 +251,29 @@ abstract class Api<D, T extends HttpData<D>> {
 
     final options = Options()
       ..retry = retry
-      ..onProgress = onProgress
+      ..onSendProgress = onSendProgress
+      ..onReceiveProgress = onReceiveProgress
       ..method = httpMethod
-      ..headers = onHeaders(params)
-      ..params = data
       ..url = onUrl(params);
 
-    onConfigOptions(options, params);
+    final headers = onHeaders(params);
+    if (headers is Future<Map<String, dynamic>>) {
+      options.headers = await headers;
+    } else {
+      options.headers = headers;
+    }
+
+    final postFillParams = onPostFillParams(data, params);
+    if (postFillParams is Future) {
+      options.params = await postFillParams ?? data;
+    } else {
+      options.params = postFillParams ?? data;
+    }
+
+    final configOptions = onConfigOptions(options, params);
+    if (configOptions is Future<void>) {
+      await configOptions;
+    }
 
     options.cancelToken = _cancelToken;
 
@@ -222,33 +283,45 @@ abstract class Api<D, T extends HttpData<D>> {
   /// 核心任务执行
   ///
   /// 此处为真正启动http请求的方法
-  Future<void> _onDo(Options options, T data) async {
+  Future<void> _onDo(T data) async {
+    if (_cancelMark) {
+      return;
+    }
+
+    final willRequest = onWillRequest(data);
+    if (willRequest is Future<void>) {
+      await willRequest;
+    }
+
     if (_cancelMark) {
       return;
     }
 
     // 创建网络请求工具
-    var communication = onInterceptCreateHttpUtils() ?? httpUtils;
+    JvtdHttpUtils communication;
+    final interceptCreateCommunication = onInterceptCreateHttpUtils(data);
+    if (interceptCreateCommunication is Future<JvtdHttpUtils>) {
+      communication = await interceptCreateCommunication ?? httpUtils;
+    } else {
+      communication = interceptCreateCommunication ?? httpUtils;
+    }
 
     if (_cancelMark) {
       return;
     }
 
-    final response = await communication.request(tag, options);
-    if (response == null) {
-      _cancelMark = true;
-    }
+    data._response = await communication.request(tag, data.options);
     if (_cancelMark) {
       return;
     }
 
-    _onParseResponse(response, data);
+    _onParseResponse(data);
   }
 
   /// 任务完成后置方法
   @mustCallSuper
   @protected
-  void onStop(T data) {
+  FutureOr<void> onStop(T data) {
     httpLog(tag, "api调用结束");
     if (!_cancelMark) {
       // 不同结果的后继执行
@@ -266,11 +339,11 @@ abstract class Api<D, T extends HttpData<D>> {
   ///
   /// 即设置请求结果和返回数据之后，并且在回调任务发送后才执行此函数
   @protected
-  void onFinish(T data) {}
+  FutureOr<void> onFinish(T data) {}
 
   /// 任务被取消时调用
   @protected
-  void onCanceled(T data) {}
+  FutureOr<void> onCanceled(T data) {}
 
   /// 参数合法性检测
   ///
@@ -279,7 +352,7 @@ abstract class Api<D, T extends HttpData<D>> {
   /// 且后续网络请求任务不再执行，任务任然可以正常返回并执行生命周期[onFailed]，[onFinish]。
   /// * 参数合法返回true，非法返回false。
   @protected
-  bool onCheckParams(dynamic params) => true;
+  FutureOr<bool> onCheckParams(dynamic params) => true;
 
   /// 参数检测不合法时调用
   ///
@@ -287,39 +360,47 @@ abstract class Api<D, T extends HttpData<D>> {
   /// 但是任务任然可以正常返回并执行生命周期[onFailed]，[onFinish]。
   /// * 返回错误消息内容，将会设置给[HttpData.message]
   @protected
-  String onParamsError(dynamic params) => null;
+  FutureOr<String> onParamsError(dynamic params) => null;
 
   /// 填充请求所需的前置参数
   ///
   /// * 适合填充项目中所有接口必须传递的固定参数（通过项目中实现的定制[Api]基类完成）
   /// * [data]为请求参数集（http请求要发送的参数），[params]为任务传入的参数列表
   @protected
-  void onPreFillParams(Map<String, dynamic> data, Map<String, dynamic> params) {}
+  FutureOr<void> onPreFillParams(Map<String, dynamic> data, Map<String, dynamic> params) {}
 
   /// 填充请求所需的参数
   ///
   /// [data]为请求参数集（http请求要发送的参数），[params]为任务传入的参数列表
   @protected
-  void onFillParams(Map<String, dynamic> data, Map<String, dynamic> params);
+  FutureOr<void> onFillParams(Map<String, dynamic> data, Map<String, dynamic> params);
 
   /// 填充请求所需的后置参数
   ///
   /// * 适合对参数进行签名（通过项目中实现的定制[Api]基类完成）
   /// * [data]为请求参数集（http请求要发送的参数），[params]为任务传入的参数列表
+  /// * 如果需要使用其他数据类型作为请求参数，请返回新的数据集合对象，支持[Map]，[List]，[String]([ResponseType.plain])
+  /// 不返回参数或返回null则继续使用[data]作为请求参数
   @protected
-  void onPostFillParams(Map<String, dynamic> data, Map<String, dynamic> params) {}
+  FutureOr<dynamic> onPostFillParams(Map<String, dynamic> data, Map<String, dynamic> params) => null;
 
   /// 创建并填充请求头
   ///
   /// [params]为任务传入的参数
   @protected
-  Map<String, dynamic> onHeaders(dynamic params) => null;
+  FutureOr<Map<String, dynamic>> onHeaders(dynamic params) => null;
 
   /// 拦截创建网络请求工具
   ///
   /// * 用于创建完全自定义实现的网络请求工具。
   @protected
-  JvtdHttpUtils onInterceptCreateHttpUtils() => null;
+  FutureOr<JvtdHttpUtils> onInterceptCreateHttpUtils(T data) => null;
+
+  /// 即将执行网络请求前的回调
+  ///
+  /// 此处可以用于做数据统计，特殊变量创建等，如果调用[cancel]则会拦截接下来的网络请求
+  @protected
+  FutureOr<void> onWillRequest(T data) {}
 
   /// 自定义配置http请求选择项
   ///
@@ -332,7 +413,7 @@ abstract class Api<D, T extends HttpData<D>> {
   /// [onHeaders]中创建的请求头，
   /// 以上属性都可以在这里被覆盖可以被覆盖。
   @protected
-  void onConfigOptions(Options options, dynamic params) {}
+  FutureOr<void> onConfigOptions(Options options, dynamic params) {}
 
   /// 网络请求方法
   @protected
@@ -345,23 +426,25 @@ abstract class Api<D, T extends HttpData<D>> {
   String onUrl(dynamic params);
 
   /// 解析响应数据
-  void _onParseResponse(Response response, T data) {
+  FutureOr<void> _onParseResponse(T data) async {
     httpLog(tag, "开始解析服务器返回数据");
-    data._httpCode = response.statusCode;
-    data._response = response;
+    data._httpCode = data.response.statusCode;
 
     if (!isHttpSuccess()) {
-      response.success = data._httpCode != 0; //用于睿丁异常抛出
+      data.response.success = data._httpCode != 0; //用于睿丁异常抛出
     }
 
-    if (response.success) {
+    if (data.response.success) {
       // 解析数据
       //noinspection unchecked
-      if (_onParse(response.data, data)) {
+      if (await _onParse(data.response.data, data)) {
         // 解析成功
         httpLog(tag, "api接口调用完成，进入回调...");
         // 解析成功回调
-        onParseSuccess(data);
+        final parseSuccess = onParseSuccess(data);
+        if (parseSuccess is Future<void>) {
+          await parseSuccess;
+        }
         if (data.success) {
           httpLog(tag, "接口调用正常");
         } else {
@@ -372,27 +455,46 @@ abstract class Api<D, T extends HttpData<D>> {
         httpLog(tag, "数据解析失败");
         // 解析失败回调
         data._success = false;
-        data._message = onParseFailed(data);
+        data.response.errorType = HttpErrorType.parse;
+        final parseFailed = onParseFailed(data);
+        if (parseFailed is Future<String>) {
+          data._message = await parseFailed;
+        } else {
+          data._message = parseFailed;
+        }
       }
-    } else if (response.statusCode > 400) {
+    } else if (data.response.errorType == HttpErrorType.response) {
       // 网络请求失败
       httpLog(tag, "网络请求失败");
 
       // 网络请求失败回调
-      data._message = onNetworkRequestFailed(data);
+      // 网络请求失败回调
+      final networkRequestFailed = onNetworkRequestFailed(data);
+      if (networkRequestFailed is Future<String>) {
+        data._message = await networkRequestFailed;
+      } else {
+        data._message = networkRequestFailed;
+      }
     } else {
       // 网络连接失败
       httpLog(tag, "网络连接失败");
 
       // 网络错误回调
-      data._message = onNetworkError(data);
+      final networkError = onNetworkError(data);
+      if (networkError is Future<String>) {
+        data._message = await networkError;
+      } else {
+        data._message = networkError;
+      }
     }
   }
 
   /// 解析响应体，返回解析结果
-  bool _onParse(responseBody, T data) {
+  FutureOr<bool> _onParse(responseBody, T data) async {
     httpLog(tag, "解析进行中...");
-    if (!onCheckResponse(responseBody)) {
+    final checkResponse = onCheckResponse(data);
+    final checkResponseResult = (checkResponse is Future<bool>) ? await checkResponse : checkResponse;
+    if (!checkResponseResult) {
       // 通信异常
       httpLog(tag, "校验返回实体异常");
       return false;
@@ -402,26 +504,60 @@ abstract class Api<D, T extends HttpData<D>> {
       // 提取服务状态码
       data._statusCode = onResponseCode(responseBody);
       // 提取服务执行结果
-      data._success = onResponseResult(responseBody);
+      final responseResult = onResponseResult(responseBody);
+      if (responseResult is Future<bool>) {
+        data._success = await responseResult;
+      } else {
+        data._success = responseResult;
+      }
       httpLog(tag, "分析接口请求结果： " + (data.success ? "成功" : "失败"));
 
       if (data.success) {
         // 服务请求成功回调
         httpLog(tag, "服务器返回成功，进入成功数据解析...");
-        data._result = onResponseSuccess(responseBody, data);
+        final responseSuccess = onResponseSuccess(responseBody, data);
+        if (responseSuccess is Future<D>) {
+          data._result = await responseSuccess;
+        } else {
+          data._result = responseSuccess;
+        }
+
         // 提取服务返回的消息
-        data._message = onRequestSuccessMessage(responseBody, data);
+        final requestSuccessMessage = onRequestSuccessMessage(responseBody, data);
+        if (requestSuccessMessage is Future<String>) {
+          data._message = await requestSuccessMessage;
+        } else {
+          data._message = requestSuccessMessage;
+        }
       } else {
         // 服务请求失败回调
         httpLog(tag, "服务器返回失败，进入失败数据解析");
-        data._result = onRequestFailed(responseBody, data);
+        final requestFailed = onRequestFailed(responseBody, data);
+        if (requestFailed is Future<D>) {
+          data._result = await requestFailed;
+        } else {
+          data._result = requestFailed;
+        }
+
         // 提取服务返回的消息
-        data._message = onRequestFailedMessage(responseBody, data);
+        final requestFailedMessage = onRequestFailedMessage(responseBody, data);
+        if (requestFailedMessage is Future<String>) {
+          data._message = await requestFailedMessage;
+        } else {
+          data._message = requestFailedMessage;
+        }
+        data.response.errorType = HttpErrorType.task;
       }
       httpLog(tag, "服务器返回的信息:", data.message);
-
       return true;
     } catch (e) {
+      data.response.errorType = HttpErrorType.task;
+      final catchMessage = onCatchMessage(data, e);
+      if (catchMessage is Future<String>) {
+        data._message = await catchMessage;
+      } else {
+        data._message = await catchMessage;
+      }
       httpLog(tag, "解析异常：", e);
       return false;
     } finally {
@@ -433,26 +569,26 @@ abstract class Api<D, T extends HttpData<D>> {
   ///
   /// 即在[_onParse]返回true时调用
   @protected
-  void onParseSuccess(T data) {}
+  FutureOr<void> onParseSuccess(T data) {}
 
   /// 网络请求成功，服务器响应数据解析失败后调用
   ///
   /// 即在[_onParse]返回false时调用，
   /// 返回响应数据解析失败时的消息，即[HttpData.message]字段
   @protected
-  String onParseFailed(T data) => null;
+  FutureOr<String> onParseFailed(T data) => null;
 
   /// 网络连接建立成功，但是请求失败时调用
   ///
   /// 即响应码不是200，返回网络请求失败时的消息，即[HttpData.message]字段
   @protected
-  String onNetworkRequestFailed(T data) => null;
+  FutureOr<String> onNetworkRequestFailed(T data) => null;
 
   /// 网络连接建立失败时调用，即网络不可用
   ///
   /// 返回设置网络无效时的消息，即[HttpData.message]字段
   @protected
-  String onNetworkError(T data) => null;
+  FutureOr<String> onNetworkError(T data) => null;
 
   /// 检测响应结果是否符合预期（数据类型或是否包含特定字段），也可以做验签
   ///
@@ -461,7 +597,7 @@ abstract class Api<D, T extends HttpData<D>> {
   /// * 下载请求中默认为[ResponseType.stream]则[response]为[Stream]。
   /// * 如果设置为[ResponseType.plain]则[response]为字符串。
   @protected
-  bool onCheckResponse(response) => true;
+  FutureOr<bool> onCheckResponse(T data) => true;
 
   /// 提取服务执行结果
   ///
@@ -471,11 +607,11 @@ abstract class Api<D, T extends HttpData<D>> {
   /// * 下载请求中默认为[ResponseType.stream]则[response]为[Stream]。
   /// * 如果设置为[ResponseType.plain]则[response]为字符串。
   @protected
-  bool onResponseResult(response);
+  FutureOr<bool> onResponseResult(response);
 
   /// 提取服务之星返回的正确状态码
   @protected
-  dynamic onResponseCode(response);
+  FutureOr<dynamic> onResponseCode(response);
 
   /// 提取服务执行成功时返回的真正有用结果数据
   ///
@@ -486,7 +622,7 @@ abstract class Api<D, T extends HttpData<D>> {
   /// * 下载请求中默认为[ResponseType.stream]则[response]为[Stream]。
   /// * 如果设置为[ResponseType.plain]则[response]为字符串。
   @protected
-  D onResponseSuccess(response, T data);
+  FutureOr<D> onResponseSuccess(response, T data);
 
   /// 提取或设置服务返回的成功结果消息
   ///
@@ -496,7 +632,7 @@ abstract class Api<D, T extends HttpData<D>> {
   /// * 下载请求中默认为[ResponseType.stream]则[response]为[Stream]。
   /// * 如果设置为[ResponseType.plain]则[response]为字符串。
   @protected
-  String onRequestSuccessMessage(response, T data) => null;
+  FutureOr<String> onRequestSuccessMessage(response, T data) => null;
 
   /// 提取或设置服务执行失败时的返回结果数据
   ///
@@ -507,7 +643,7 @@ abstract class Api<D, T extends HttpData<D>> {
   /// * 下载请求中默认为[ResponseType.stream]则[response]为[Stream]。
   /// * 如果设置为[ResponseType.plain]则[response]为字符串。
   @protected
-  D onRequestFailed(response, T data) => null;
+  FutureOr<D> onRequestFailed(response, T data) => null;
 
   /// 提取或设置服务返回的失败结果消息
   ///
@@ -516,26 +652,31 @@ abstract class Api<D, T extends HttpData<D>> {
   /// * 在一般请求中默认为[ResponseType.json]则[response]为[Map]类型的json数据。
   /// * 下载请求中默认为[ResponseType.stream]则[response]为[Stream]。
   /// * 如果设置为[ResponseType.plain]则[response]为字符串。
-  String onRequestFailedMessage(response, T data) => null;
+  FutureOr<String> onRequestFailedMessage(response, T data) => null;
+
+  /// 本地处理catch问题
+  FutureOr<String> onCatchMessage(T data, dynamic e) => e.toString();
 
   /// 本次任务执行成功后执行
   ///
   /// 即设置请求结果和返回数据之后，并且在回调接口之前执行此函数，
   /// 该方法在[onFinish]之前被调用
   @protected
-  void onSuccess(T data) {}
+  FutureOr<void> onSuccess(T data) {}
 
   /// 本次任务执行失败后执行
   ///
   /// 即设置请求结果和返回数据之后，并且在回调接口之前执行此函数，
   /// 该方法在[onFinish]之前被调用
   @protected
-  void onFailed(T data) {}
+  FutureOr<void> onFailed(T data) {}
 
+  /// 传入参数类型
   ParamType paramType() {
     return ParamType.map;
   }
 
+  // 是否基于http code
   bool isHttpSuccess() {
     return true;
   }

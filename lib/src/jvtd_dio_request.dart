@@ -1,12 +1,13 @@
 import 'dart:async';
-import 'dart:io';
-import 'package:http_parser/http_parser.dart';
+import 'dart:convert';
 
 import 'package:dio/dio.dart' as dio;
 
 import 'jvtd_http_print.dart';
 import 'jvtd_http_utils.dart' as httpUtils;
 import 'jvtd_http_config.dart' as work;
+
+import 'convert/jvtd_http_convert.dart' if (dart.library.html) 'convert/_convert_web.dart' if (dart.library.io) 'convert/_convert_native.dart';
 
 /// 发起请求
 ///
@@ -16,14 +17,41 @@ Future<httpUtils.Response> request(String tag, httpUtils.Options options) async 
 
   dio.Response dioResponse;
 
+  httpUtils.HttpErrorType errorType;
+
   bool success = false;
+
+  // 总接收字节数
+  var receiveByteCount = 0;
+
+  // 结果解析器
+  final decoder = (responseBytes, options, responseBody) {
+    receiveByteCount = responseBytes.length;
+    return utf8.decode(responseBytes, allowMalformed: true);
+  };
+
+  dioOptions.responseDecoder = decoder;
+
+  final isFormData = options.method == httpUtils.HttpMethod.upload || (options.contentType ?? work.dio.options.contentType) == httpUtils.formData;
 
   try {
     switch (options.method) {
       case httpUtils.HttpMethod.download:
         httpLog(tag, "下载地址:${options.downloadPath}");
-        dioResponse =
-            await work.dio.download(options.url, options.downloadPath, data: options.params, cancelToken: options.cancelToken.data, options: dioOptions, onReceiveProgress: options.onProgress);
+        // 接收进度代理
+        final onReceiveProgress = (int receive, int total) {
+          receiveByteCount = receive;
+          options.onReceiveProgress?.call(receive, total);
+        };
+
+        dioResponse = await work.dio.download(
+          options.url,
+          options.downloadPath,
+          data: options.params,
+          cancelToken: options.cancelToken.data,
+          options: dioOptions,
+          onReceiveProgress: onReceiveProgress,
+        );
         break;
       case httpUtils.HttpMethod.get:
         dioResponse = await work.dio.get(
@@ -31,24 +59,17 @@ Future<httpUtils.Response> request(String tag, httpUtils.Options options) async 
           queryParameters: options.params,
           cancelToken: options.cancelToken.data,
           options: dioOptions,
-        );
-        break;
-      case httpUtils.HttpMethod.upload:
-        dioResponse = await work.dio.request(
-          options.url,
-          data: await _onConvertToDio(options.params),
-          cancelToken: options.cancelToken.data,
-          options: dioOptions,
-          onSendProgress: options.onProgress,
+          onReceiveProgress: options.onReceiveProgress,
         );
         break;
       default:
         dioResponse = await work.dio.request(
           options.url,
-          data: options.params,
+          data: isFormData ? await convertToDio(options.params) : options.params,
           cancelToken: options.cancelToken.data,
           options: dioOptions,
-          onSendProgress: options.onProgress,
+          onSendProgress: options.onSendProgress,
+          onReceiveProgress: options.onReceiveProgress,
         );
         break;
     }
@@ -58,44 +79,44 @@ Future<httpUtils.Response> request(String tag, httpUtils.Options options) async 
     httpLog(tag, "http 错误", e.type);
     dioResponse = e.response;
     success = false;
+    errorType = _onConvertErrorType(e.type);
   } catch (e) {
     httpLog(tag, "http 其他错误", e);
+    errorType = httpUtils.HttpErrorType.other;
   }
 
-  return _onParseResponse(tag, success, dioResponse);
+  if (dioResponse != null) {
+    return httpUtils.Response(
+      success: success,
+      statusCode: dioResponse.statusCode,
+      headers: dioResponse.headers?.map,
+      data: dioResponse.request?.responseType == dio.ResponseType.stream
+          ? dioResponse.data.stream
+          : dioResponse.data,
+      errorType: errorType,
+      receiveByteCount: receiveByteCount,
+    );
+  } else {
+    return httpUtils.Response(errorType: errorType);
+  }
 }
 
-/// 用于[httpUtils.HttpMethod.upload]请求类型的数据转换
-///
-/// [src]原始参数，返回处理后的符合dio接口的参数
-Future<dio.FormData> _onConvertToDio(Map<String, dynamic> src) async {
-  onConvert(value) async {
-    if (value is File) {
-      value = httpUtils.UploadFileInfo(value.path);
-    }
-
-    if (value is httpUtils.UploadFileInfo) {
-      return dio.MultipartFile.fromFile(
-        value.filePath,
-        filename: value.fileName,
-        contentType: MediaType.parse(value.mimeType),
-      );
-    }
-
-    return value;
+/// 转换dio异常类型到work库异常类型
+httpUtils.HttpErrorType _onConvertErrorType(dio.DioErrorType type) {
+  switch (type) {
+    case dio.DioErrorType.CONNECT_TIMEOUT:
+      return httpUtils.HttpErrorType.connectTimeout;
+    case dio.DioErrorType.SEND_TIMEOUT:
+      return httpUtils.HttpErrorType.sendTimeout;
+    case dio.DioErrorType.RECEIVE_TIMEOUT:
+      return httpUtils.HttpErrorType.receiveTimeout;
+    case dio.DioErrorType.RESPONSE:
+      return httpUtils.HttpErrorType.response;
+    case dio.DioErrorType.CANCEL:
+      return httpUtils.HttpErrorType.cancel;
+    default:
+      return httpUtils.HttpErrorType.other;
   }
-
-  final params = Map<String, dynamic>();
-
-  for (final entry in src.entries) {
-    if (entry.value is List) {
-      params[entry.key] = await Stream.fromFutures((entry.value as List).map(onConvert)).toList();
-    } else {
-      params[entry.key] = await onConvert(entry.value);
-    }
-  }
-
-  return dio.FormData.fromMap(params);
 }
 
 /// 生成dio专用配置
@@ -163,18 +184,4 @@ dio.Options _onConfigOptions(String tag, httpUtils.Options options) {
   }
 
   return dioOptions;
-}
-
-/// 处理dio Response为work的Response
-httpUtils.Response _onParseResponse(String tag, bool success, dio.Response dioResponse) {
-  if (dioResponse != null) {
-    return httpUtils.Response(
-      success: success,
-      statusCode: dioResponse.statusCode,
-      headers: dioResponse.headers?.map,
-      data: dioResponse.request?.responseType == dio.ResponseType.stream ? dioResponse.data.stream : dioResponse.data,
-    );
-  } else {
-    return httpUtils.Response();
-  }
 }
