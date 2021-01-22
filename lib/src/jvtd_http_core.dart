@@ -550,7 +550,7 @@ abstract class Api<D, T extends HttpData<D>> {
       }
       httpLog(tag, "服务器返回的信息:", data.message);
       return true;
-    } catch (e) {
+    } catch (e, s) {
       data.response.errorType = HttpErrorType.task;
       final catchMessage = onCatchMessage(data, e);
       if (catchMessage is Future<String>) {
@@ -559,6 +559,7 @@ abstract class Api<D, T extends HttpData<D>> {
         data._message = await catchMessage;
       }
       httpLog(tag, "解析异常：", e);
+      httpLog(tag, "错误堆栈：", s);
       return false;
     } finally {
       httpLog(tag, "解析结束");
